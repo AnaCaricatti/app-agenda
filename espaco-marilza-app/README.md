@@ -1,56 +1,59 @@
-# Welcome to your Expo app 👋
+# Espaço Marilza Caricatti — App da profissional
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+App (Expo / React Native) onde a profissional gerencia a agenda. Ele funciona junto com o
+**site de agendamento** (projeto `-espaco-marilza-site.py`): os dois usam o mesmo banco de
+dados no **Firebase**, por isso tudo fica sincronizado em tempo real.
 
-## Get started
+## O que o app faz
 
-1. Install dependencies
+- **Agenda**: mostra os agendamentos do dia ou da semana. Pedidos feitos no site aparecem
+  sozinhos como *pendentes*.
+- **Confirmar ou recusar**: toque no agendamento (ou no botão verde do cartão).
+- **WhatsApp**: depois de confirmado, um botão abre o WhatsApp com a mensagem pronta
+  ("Seu agendamento de ... foi confirmado para ..., às ...").
+- **Agendar pelo app**: botão *Agendar* na agenda, para marcar um horário para uma cliente.
+- **Horários**: escolha os horários que ficam disponíveis no site.
+- **Serviços**: cadastre os serviços, preços e durações que aparecem no site.
 
-   ```bash
-   npm install
-   ```
+## Configurar o Firebase
 
-2. Start the app
+O passo a passo completo está no README do site. Resumindo: crie o projeto no Firebase,
+ative o **Firestore** e o login por **E-mail/senha**, crie o usuário da profissional e cole
+as chaves do projeto em [`src/config/firebaseConfig.ts`](src/config/firebaseConfig.ts)
+(as mesmas chaves vão em `js/firebase-config.js` no site).
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Rodar no computador
 
 ```bash
-npm run reset-project
+npm install
+npm run web
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Depois abra <http://localhost:8081>. Para testar no celular, use `npx expo start` e o app Expo Go.
 
-### Other setup steps
+Antes de entregar uma alteração, confira se está tudo certo:
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```bash
+npx tsc --noEmit
+npx eslint src
+```
 
-## Learn more
+## Organização dos arquivos (`src/`)
 
-To learn more about developing your project with Expo, look at the following resources:
+| Pasta / arquivo | O que tem |
+| --- | --- |
+| `app/` | As telas. Cada arquivo é uma tela (Expo Router) |
+| `app/_layout.tsx` | Ponto de partida: decide entre login e área logada |
+| `app/login.tsx` | Tela de login |
+| `app/(tabs)/` | As três abas: `index` (Agenda), `horarios` e `servicos` |
+| `app/agendamento/[id].tsx` | Detalhes: confirmar, recusar, cancelar, WhatsApp |
+| `app/agendamento/novo.tsx` | Agendamento feito pela profissional |
+| `components/` | Peças visuais reaproveitadas (botão, cartão, cabeçalho...) |
+| `services/` | Tudo o que lê e grava no Firebase. As telas só chamam estas funções |
+| `contexts/AuthContext.tsx` | Guarda quem está logado |
+| `types/` | O formato dos dados (agendamento, serviço, expediente) |
+| `utils/` | Funções de apoio: datas, horários livres, WhatsApp, mensagens |
+| `theme/cores.ts` | Cores, fonte dos títulos e sombra. Mude aqui para mudar o visual |
+| `config/firebaseConfig.ts` | Chaves do seu projeto Firebase |
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+O formato dos dados no banco está descrito no README do site.

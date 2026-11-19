@@ -1,32 +1,108 @@
-import { Agendamento } from "../types/agendamento";
-import { paraISO, somarDias } from "../utils/datas";
+// Tudo o que o app faz com os agendamentos no Firebase fica neste arquivo.
+// As telas nunca falam direto com o banco: elas chamam as funções daqui.
+import {
+  addDoc,
+  collection,
+  doc,
+  getDocs,
+  onSnapshot,
+  query,
+  updateDoc,
+  where,
+  DocumentData,
+} from "firebase/firestore";
 
-// DADOS DE EXEMPLO (temporários). As datas são calculadas a partir de hoje,
-// então sempre aparecem agendamentos perto da data atual.
-const hoje = new Date();
-const dia = (deslocamento: number) => paraISO(somarDias(hoje, deslocamento));
+import { Agendamento, NovoAgendamento, StatusAgendamento } from "../types/agendamento";
+import { calcularFim, paraMinutos } from "../utils/horarios";
+import { mensagens } from "../utils/mensagens";
+import { COLECOES, db } from "./firebase";
 
-const agendamentosDeExemplo: Agendamento[] = [
-  { id: "1", clienteNome: "Camila Ribeiro", clienteTelefone: "(37) 99876-5432", servico: "Manicure", data: dia(0), horario: "09:00", status: "confirmado" },
-  { id: "2", clienteNome: "Fernanda Lopes", clienteTelefone: "(37) 98812-3344", servico: "Pedicure", data: dia(0), horario: "10:30", status: "pendente" },
-  { id: "3", clienteNome: "Juliana Alves", clienteTelefone: "(37) 99123-4567", servico: "Esmaltação em gel", data: dia(0), horario: "14:00", status: "pendente" },
-  { id: "4", clienteNome: "Patrícia Souza", clienteTelefone: "(37) 99555-1020", servico: "Manicure e pedicure", data: dia(0), horario: "16:00", status: "cancelado" },
-  { id: "5", clienteNome: "Renata Martins", clienteTelefone: "(37) 98744-9090", servico: "Manicure", data: dia(1), horario: "09:30", status: "pendente" },
-  { id: "6", clienteNome: "Aline Costa", clienteTelefone: "(37) 99001-7788", servico: "Esmaltação em gel", data: dia(1), horario: "15:00", status: "confirmado" },
-  { id: "7", clienteNome: "Beatriz Nunes", clienteTelefone: "(37) 98666-2211", servico: "Pedicure", data: dia(2), horario: "11:00", status: "pendente" },
-  { id: "8", clienteNome: "Larissa Prado", clienteTelefone: "(37) 99432-8800", servico: "Manicure", data: dia(3), horario: "13:30", status: "confirmado" },
-  { id: "9", clienteNome: "Sabrina Dias", clienteTelefone: "(37) 98321-6655", servico: "Manicure e pedicure", data: dia(-1), horario: "10:00", status: "confirmado" },
-];
+const colecao = collection(db, COLECOES.agendamentos);
 
-// Busca os agendamentos entre duas datas (inclusive), em ordem de horário.
-// Hoje usa os dados de exemplo; depois vai ler do Firebase.
-export async function buscarAgendamentos(
+// Função que "desliga" uma observação em tempo real.
+type PararDeObservar = () => void;
+
+// Transforma um documento do Firebase em um Agendamento do app.
+function paraAgendamento(id: string, dados: DocumentData): Agendamento {
+  return { id, ...dados } as Agendamento;
+}
+
+function ordenarPorDataEHora(lista: Agendamento[]): Agendamento[] {
+  return lista.sort((a, b) => (a.data + a.horario).localeCompare(b.data + b.horario));
+}
+
+// Acompanha EM TEMPO REAL os agendamentos entre duas datas (inclusive).
+// Sempre que alguém marcar, confirmar ou cancelar (pelo site ou pelo app),
+// a função "aoMudar" é chamada de novo com a lista atualizada.
+export function observarAgendamentos(
   dataInicial: string,
-  dataFinal: string
-): Promise<Agendamento[]> {
-  await new Promise((resolve) => setTimeout(resolve, 400)); // simula a espera da internet
+  dataFinal: string,
+  aoMudar: (agendamentos: Agendamento[]) => void,
+  aoFalhar: () => void
+): PararDeObservar {
+  const consulta = query(colecao, where("data", ">=", dataInicial), where("data", "<=", dataFinal));
 
-  return agendamentosDeExemplo
-    .filter((a) => a.data >= dataInicial && a.data <= dataFinal)
-    .sort((a, b) => (a.data + a.horario).localeCompare(b.data + b.horario));
+  return onSnapshot(
+    consulta,
+    (resultado) => {
+      const lista = resultado.docs.map((d) => paraAgendamento(d.id, d.data()));
+      aoMudar(ordenarPorDataEHora(lista));
+    },
+    aoFalhar
+  );
+}
+
+// Acompanha em tempo real um único agendamento (tela de detalhes).
+export function observarAgendamento(
+  id: string,
+  aoMudar: (agendamento: Agendamento | null) => void,
+  aoFalhar: () => void
+): PararDeObservar {
+  return onSnapshot(
+    doc(colecao, id),
+    (documento) => {
+      aoMudar(documento.exists() ? paraAgendamento(documento.id, documento.data()) : null);
+    },
+    aoFalhar
+  );
+}
+
+// Busca uma vez só os agendamentos de um dia (usado para calcular horários livres).
+export async function buscarAgendamentosDoDia(data: string): Promise<Agendamento[]> {
+  const resultado = await getDocs(query(colecao, where("data", "==", data)));
+  return resultado.docs.map((d) => paraAgendamento(d.id, d.data()));
+}
+
+// Muda o status de um agendamento (confirmar ou cancelar).
+// Como o site só considera ocupado o que NÃO está cancelado,
+// cancelar libera o horário automaticamente (RN03).
+export async function atualizarStatus(id: string, status: StatusAgendamento): Promise<void> {
+  await updateDoc(doc(colecao, id), { status });
+}
+
+// Cria um agendamento feito pela própria profissional no app.
+// Ele já nasce "confirmado", pois foi ela mesma quem marcou.
+export async function criarAgendamento(dados: NovoAgendamento): Promise<string> {
+  const horarioFim = calcularFim(dados.horario, dados.duracao);
+
+  // Confere de novo se o horário continua livre antes de gravar (MSG08).
+  const doDia = await buscarAgendamentosDoDia(dados.data);
+  const inicio = paraMinutos(dados.horario);
+  const fim = paraMinutos(horarioFim);
+  const ocupado = doDia.some(
+    (a) =>
+      a.status !== "cancelado" &&
+      inicio < paraMinutos(a.horarioFim) &&
+      fim > paraMinutos(a.horario)
+  );
+  if (ocupado) throw new Error(mensagens.MSG08);
+
+  const novo = await addDoc(colecao, {
+    ...dados,
+    horarioFim,
+    status: "confirmado",
+    origem: "app",
+    criadoEm: new Date().toISOString(),
+  });
+  return novo.id;
 }
