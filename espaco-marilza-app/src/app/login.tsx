@@ -6,21 +6,20 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  Alert,
   StyleSheet,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
 
 import CampoTexto from "../components/CampoTexto";
 import Botao from "../components/Botao";
-import { cores } from "../theme/cores";
+import { useAuth } from "../contexts/AuthContext";
+import { cores, fontes, sombra } from "../theme/cores";
 import { mensagens } from "../utils/mensagens";
 import { validarEmail, validarSenha } from "../utils/validacoes";
 
 export default function TelaLogin() {
-  const router = useRouter(); // ferramenta para trocar de tela
+  const { entrar, recuperarSenha } = useAuth();
 
   // O que a pessoa digitou
   const [email, setEmail] = useState("");
@@ -30,11 +29,13 @@ export default function TelaLogin() {
   const [erroEmail, setErroEmail] = useState<string | null>(null);
   const [erroSenha, setErroSenha] = useState<string | null>(null);
   const [erroLogin, setErroLogin] = useState<string | null>(null);
+  const [avisoSenha, setAvisoSenha] = useState<string | null>(null);
 
   const [carregando, setCarregando] = useState(false);
 
-  async function entrar() {
+  async function fazerLogin() {
     setErroLogin(null);
+    setAvisoSenha(null);
 
     // 1) Valida os campos
     const erroDoEmail = validarEmail(email);
@@ -43,29 +44,29 @@ export default function TelaLogin() {
     setErroSenha(erroDaSenha);
     if (erroDoEmail || erroDaSenha) return; // se tem erro, para aqui
 
-    // 2) Tenta entrar
     setCarregando(true);
 
-    // TEMPORÁRIO: simula o login até conectarmos o Firebase.
-    // Para testar, use: marilzacari@hotmail.com e a senha 12345678
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    const loginCorreto =
-      email.trim().toLowerCase() === "marilzacari@hotmail.com" &&
-      senha === "12345678";
-
-    setCarregando(false);
-
-    // 3) Segue para a agenda ou mostra a MSG01
-    if (loginCorreto) {
-      router.replace("/agenda"); // replace: não deixa voltar ao login
-    } else {
+    // 2) Pede ao Firebase para conferir o e-mail e a senha
+    try {
+      await entrar(email, senha);
+      // Deu certo: o _layout percebe o login e troca sozinho para a agenda.
+    } catch {
       setErroLogin(mensagens.MSG01);
+      setCarregando(false);
     }
   }
 
-  function recuperarSenha() {
-    // Será ligado ao Firebase mais adiante.
-    Alert.alert("Recuperar senha", "Esta função será ativada quando conectarmos o Firebase.");
+  async function enviarRecuperacao() {
+    const erroDoEmail = validarEmail(email);
+    setErroEmail(erroDoEmail);
+    if (erroDoEmail) return; // precisa do e-mail preenchido para enviar o link
+
+    try {
+      await recuperarSenha(email);
+    } catch {
+      // Por segurança, mostramos a mesma mensagem mesmo se o e-mail não existir.
+    }
+    setAvisoSenha("Se este e-mail estiver cadastrado, enviaremos um link para criar uma nova senha.");
   }
 
   return (
@@ -80,8 +81,9 @@ export default function TelaLogin() {
         >
           <View style={estilos.cabecalho}>
             <View style={estilos.logo}>
-              <Ionicons name="flower-outline" size={36} color={cores.primariaEscura} />
+              <Text style={estilos.monograma}>MC</Text>
             </View>
+            <Text style={estilos.marca}>ESPAÇO MARILZA CARICATTI</Text>
             <Text style={estilos.titulo}>Bem-vinda de volta</Text>
             <Text style={estilos.subtitulo}>Entre para gerenciar a sua agenda</Text>
           </View>
@@ -90,6 +92,13 @@ export default function TelaLogin() {
             <View style={estilos.alerta}>
               <Ionicons name="alert-circle" size={20} color={cores.cancelado} />
               <Text style={estilos.textoAlerta}>{erroLogin}</Text>
+            </View>
+          ) : null}
+
+          {avisoSenha ? (
+            <View style={estilos.alerta}>
+              <Ionicons name="mail-outline" size={20} color={cores.primariaEscura} />
+              <Text style={estilos.textoAlerta}>{avisoSenha}</Text>
             </View>
           ) : null}
 
@@ -118,11 +127,11 @@ export default function TelaLogin() {
             maxLength={20}
           />
 
-          <Pressable onPress={recuperarSenha} style={estilos.linkEsqueci}>
+          <Pressable onPress={enviarRecuperacao} style={estilos.linkEsqueci}>
             <Text style={estilos.textoLink}>Esqueci minha senha</Text>
           </Pressable>
 
-          <Botao titulo="Acessar" aoPressar={entrar} carregando={carregando} />
+          <Botao titulo="Acessar" aoPressar={fazerLogin} carregando={carregando} />
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -131,18 +140,29 @@ export default function TelaLogin() {
 
 const estilos = StyleSheet.create({
   tela: { flex: 1, backgroundColor: cores.fundo },
-  conteudo: { flexGrow: 1, justifyContent: "center", padding: 24 },
+  conteudo: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 24,
+    width: "100%",
+    maxWidth: 460,
+    alignSelf: "center",
+  },
   cabecalho: { alignItems: "center", marginBottom: 32 },
   logo: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: cores.primariaClara,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: cores.primariaEscura,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
+    ...sombra,
+    shadowOpacity: 0.25,
   },
-  titulo: { fontSize: 26, fontWeight: "700", color: cores.texto },
+  monograma: { fontFamily: fontes.titulo, fontSize: 30, fontWeight: "700", color: cores.superficie },
+  marca: { fontSize: 11, fontWeight: "700", letterSpacing: 2, color: cores.dourado, marginBottom: 8 },
+  titulo: { fontFamily: fontes.titulo, fontSize: 30, fontWeight: "700", color: cores.texto },
   subtitulo: { fontSize: 15, color: cores.textoSuave, marginTop: 6 },
   alerta: {
     flexDirection: "row",

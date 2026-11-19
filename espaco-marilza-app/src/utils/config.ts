@@ -1,3 +1,3 @@
 // Link da página web de agendamento dos clientes.
-// TROCAR pelo endereço real quando a colega do site publicar a página.
-export const LINK_AGENDAMENTO = "https://exemplo.com/agendar";
+// trocar para endereço real quando o site for publicado
+export const LINK_AGENDAMENTO = "http://localhost:8000/#agendar";

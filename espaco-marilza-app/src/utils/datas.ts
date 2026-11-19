@@ -40,3 +40,16 @@ export function dataPorExtenso(iso: string): string {
   const data = new Date(ano, mes - 1, dia);
   return `${DIAS_LONGOS[data.getDay()]}, ${dia} de ${MESES[mes - 1].toLowerCase()}`;
 }
+// Exemplo: "(37) 99876-5432" a partir de "37998765432"
+export function formatarTelefone(telefone: string): string {
+  const numeros = telefone.replace(/\D/g, "").slice(0, 11);
+  if (numeros.length > 10) return numeros.replace(/^(\d{2})(\d{5})(\d{0,4}).*/, "($1) $2-$3");
+  if (numeros.length > 6) return numeros.replace(/^(\d{2})(\d{4})(\d{0,4}).*/, "($1) $2-$3");
+  if (numeros.length > 2) return numeros.replace(/^(\d{2})(\d{0,5})/, "($1) $2");
+  return numeros;
+}
+
+// Exemplo: "R$ 35,00"
+export function formatarPreco(valor: number): string {
+  return `R$ ${valor.toFixed(2).replace(".", ",")}`;
+}

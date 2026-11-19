@@ -1,35 +1,37 @@
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { cores } from "../theme/cores";
-import { Agendamento, StatusAgendamento } from "../types/agendamento";
-
-const corDoStatus: Record<StatusAgendamento, string> = {
-  pendente: cores.pendente,
-  confirmado: cores.confirmado,
-  cancelado: cores.cancelado,
-};
-
-const nomeDoStatus: Record<StatusAgendamento, string> = {
-  pendente: "Pendente",
-  confirmado: "Confirmado",
-  cancelado: "Cancelado",
-};
+import { Ionicons } from "@expo/vector-icons";
+import SeloStatus from "./SeloStatus";
+import { cores, sombra } from "../theme/cores";
+import { Agendamento } from "../types/agendamento";
+import { corDoStatus } from "../utils/status";
 
 type Props = {
   agendamento: Agendamento;
-  aoPressar: () => void;
+  aoPressar: () => void; // abre os detalhes
+  aoConfirmar: () => void; // só aparece se estiver pendente
+  aoEnviarWhatsApp: () => void; // só aparece se estiver confirmado
 };
 
-export default function CardAgendamento({ agendamento, aoPressar }: Props) {
-  const cor = corDoStatus[agendamento.status];
-  const cancelado = agendamento.status === "cancelado";
+export default function CardAgendamento({
+  agendamento,
+  aoPressar,
+  aoConfirmar,
+  aoEnviarWhatsApp,
+}: Props) {
+  const { status } = agendamento;
+  const cancelado = status === "cancelado";
 
   return (
     <Pressable
       onPress={aoPressar}
       style={({ pressed }) => [estilos.card, pressed && estilos.pressionado]}
     >
+      {/* Faixa lateral com a cor do status */}
+      <View style={[estilos.faixa, { backgroundColor: corDoStatus[status] }]} />
+
       <View style={estilos.colunaHorario}>
         <Text style={estilos.horario}>{agendamento.horario}</Text>
+        <Text style={estilos.horarioFim}>{agendamento.horarioFim}</Text>
       </View>
 
       <View style={estilos.info}>
@@ -39,13 +41,22 @@ export default function CardAgendamento({ agendamento, aoPressar }: Props) {
         <Text style={estilos.servico} numberOfLines={1}>
           {agendamento.servico}
         </Text>
+        <View style={{ marginTop: 8 }}>
+          <SeloStatus status={status} />
+        </View>
       </View>
 
-      {/* "${cor}55" adiciona transparência à cor do status */}
-      <View style={[estilos.selo, { backgroundColor: `${cor}55` }]}>
-        <View style={[estilos.bolinha, { backgroundColor: cor }]} />
-        <Text style={estilos.textoSelo}>{nomeDoStatus[agendamento.status]}</Text>
-      </View>
+      {/* Atalho que muda conforme o status */}
+      {status === "pendente" && (
+        <Pressable onPress={aoConfirmar} style={[estilos.atalho, estilos.atalhoConfirmar]} hitSlop={6}>
+          <Ionicons name="checkmark" size={22} color={cores.superficie} />
+        </Pressable>
+      )}
+      {status === "confirmado" && (
+        <Pressable onPress={aoEnviarWhatsApp} style={[estilos.atalho, estilos.atalhoWhats]} hitSlop={6}>
+          <Ionicons name="logo-whatsapp" size={22} color={cores.superficie} />
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -55,33 +66,30 @@ const estilos = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: cores.superficie,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: cores.borda,
+    borderRadius: 20,
     padding: 14,
-    marginBottom: 10,
-    gap: 12,
+    paddingLeft: 20,
+    marginBottom: 12,
+    gap: 14,
+    overflow: "hidden",
+    ...sombra,
   },
-  pressionado: { opacity: 0.85 },
-  colunaHorario: {
-    backgroundColor: cores.primariaClara,
-    borderRadius: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 10,
-  },
-  horario: { fontSize: 15, fontWeight: "700", color: cores.primariaEscura },
+  pressionado: { opacity: 0.9, transform: [{ scale: 0.99 }] },
+  faixa: { position: "absolute", left: 0, top: 0, bottom: 0, width: 6 },
+  colunaHorario: { alignItems: "center", minWidth: 52 },
+  horario: { fontSize: 18, fontWeight: "800", color: cores.primariaEscura },
+  horarioFim: { fontSize: 12, color: cores.textoSuave, marginTop: 2 },
   info: { flex: 1 },
-  cliente: { fontSize: 16, fontWeight: "600", color: cores.texto },
+  cliente: { fontSize: 16, fontWeight: "700", color: cores.texto },
   riscado: { textDecorationLine: "line-through", color: cores.textoSuave },
   servico: { fontSize: 13, color: cores.textoSuave, marginTop: 2 },
-  selo: {
-    flexDirection: "row",
+  atalho: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: "center",
-    gap: 6,
-    borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    justifyContent: "center",
   },
-  bolinha: { width: 8, height: 8, borderRadius: 4 },
-  textoSelo: { fontSize: 12, fontWeight: "600", color: cores.texto },
+  atalhoConfirmar: { backgroundColor: cores.confirmado },
+  atalhoWhats: { backgroundColor: cores.whatsapp },
 });
