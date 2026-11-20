@@ -18,6 +18,7 @@ import {
 import { cores, sombra } from "../../theme/cores";
 import { DadosDoServico, Servico } from "../../types/servico";
 import { formatarPreco } from "../../utils/datas";
+import { iconeDoServico } from "../../utils/icones";
 import { mensagens } from "../../utils/mensagens";
 
 // Tela onde a profissional cadastra os serviços que aparecem no site.
@@ -99,7 +100,7 @@ export default function TelaServicos() {
               style={({ pressed }) => [estilos.card, pressed && { opacity: 0.9 }]}
             >
               <View style={estilos.icone}>
-                <Ionicons name="sparkles" size={20} color={cores.primariaEscura} />
+                <Ionicons name={iconeDoServico(servico.icone)} size={22} color={cores.superficie} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={estilos.nome}>{servico.nome}</Text>
@@ -172,7 +173,7 @@ const estilos = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: cores.primariaClara,
+    backgroundColor: cores.primariaEscura,
     alignItems: "center",
     justifyContent: "center",
   },

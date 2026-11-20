@@ -47,28 +47,28 @@ const SERVICOS_INICIAIS: DadosDoServico[] = [
     descricao: "Cuidado delicado para mãos bonitas e bem cuidadas.",
     preco: 35,
     duracao: 60,
-    imagem: "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=700&q=80",
+    icone: "hand-left-outline",
   },
   {
     nome: "Pedicure",
     descricao: "Um momento de cuidado e beleza para seus pés.",
     preco: 40,
     duracao: 60,
-    imagem: "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&w=700&q=80",
+    icone: "footsteps-outline",
   },
   {
     nome: "Esmaltação em gel",
     descricao: "Brilho intenso e acabamento impecável por mais tempo.",
     preco: 65,
     duracao: 90,
-    imagem: "https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&w=700&q=80",
+    icone: "brush-outline",
   },
   {
     nome: "Alongamento de unhas",
     descricao: "Elegância e formato personalizado para suas unhas.",
     preco: 150,
     duracao: 150,
-    imagem: "https://images.unsplash.com/photo-1610992015732-2449b76344bc?auto=format&fit=crop&w=700&q=80",
+    icone: "diamond-outline",
   },
 ];
 

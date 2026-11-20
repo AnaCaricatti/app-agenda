@@ -7,6 +7,7 @@ import * as Clipboard from "expo-clipboard";
 import Aviso, { useAviso } from "../../components/Aviso";
 import BotaoIcone from "../../components/BotaoIcone";
 import CabecalhoDaTela from "../../components/CabecalhoDaTela";
+import CalendarioDoMes from "../../components/CalendarioDoMes";
 import CardAgendamento from "../../components/CardAgendamento";
 import SeletorDeData from "../../components/SeletorDeData";
 import { useAuth } from "../../contexts/AuthContext";
@@ -18,7 +19,21 @@ import { dataPorExtenso, inicioDaSemana, paraISO, somarDias } from "../../utils/
 import { mensagens } from "../../utils/mensagens";
 import { enviarConfirmacaoPeloWhatsApp } from "../../utils/whatsapp";
 
-type Visao = "dia" | "semana";
+type Visao = "dia" | "semana" | "mes";
+
+const NOME_DA_VISAO: Record<Visao, string> = { dia: "Dia", semana: "Semana", mes: "Mês" };
+
+// Primeiro e último dia do período mostrado em cada visão.
+function calcularPeriodo(visao: Visao, data: Date): [Date, Date] {
+  if (visao === "dia") return [data, data];
+  if (visao === "semana") {
+    const segunda = inicioDaSemana(data);
+    return [segunda, somarDias(segunda, 6)];
+  }
+  const ano = data.getFullYear();
+  const mes = data.getMonth();
+  return [new Date(ano, mes, 1), new Date(ano, mes + 1, 0)]; // dia 0 do mês seguinte = último deste
+}
 
 export default function TelaAgenda() {
   const router = useRouter();
@@ -31,10 +46,10 @@ export default function TelaAgenda() {
   const [periodoCarregado, setPeriodoCarregado] = useState(""); // último período que chegou do banco
   const [erroConexao, setErroConexao] = useState(false);
 
-  // Período que a tela mostra, conforme a aba escolhida (um dia ou a semana toda).
-  const segunda = inicioDaSemana(dataSelecionada);
-  const dataInicial = visao === "dia" ? paraISO(dataSelecionada) : paraISO(segunda);
-  const dataFinal = visao === "dia" ? paraISO(dataSelecionada) : paraISO(somarDias(segunda, 6));
+  // Período que a tela mostra, conforme a aba escolhida (um dia, a semana ou o mês).
+  const [primeiroDia, ultimoDia] = calcularPeriodo(visao, dataSelecionada);
+  const dataInicial = paraISO(primeiroDia);
+  const dataFinal = paraISO(ultimoDia);
 
   // Enquanto os dados do período atual não chegam, mostra o "carregando".
   const periodo = `${dataInicial}_${dataFinal}`;
@@ -93,10 +108,19 @@ export default function TelaAgenda() {
   // Números do resumo que aparece no cabeçalho.
   const pendentes = agendamentos.filter((a) => a.status === "pendente").length;
   const confirmados = agendamentos.filter((a) => a.status === "confirmado").length;
-  const quando = visao === "dia" ? "no dia" : "na semana";
+  const quando = { dia: "no dia", semana: "na semana", mes: "no mês" }[visao];
 
   // Na visão da semana, os cards são agrupados por dia.
-  const diasDaSemana = Array.from({ length: 7 }, (_, i) => paraISO(somarDias(segunda, i)));
+  const diasDaSemana = Array.from({ length: 7 }, (_, i) => paraISO(somarDias(primeiroDia, i)));
+
+  // Na visão do mês, o calendário pinta os dias que têm algo marcado (cancelados não contam).
+  const diasComAgendamento = agendamentos.filter((a) => a.status !== "cancelado").map((a) => a.data);
+
+  // Tocar em um dia do calendário abre a agenda daquele dia.
+  function abrirDia(dia: Date) {
+    setDataSelecionada(dia);
+    setVisao("dia");
+  }
 
   return (
     <View style={estilos.tela}>
@@ -117,22 +141,31 @@ export default function TelaAgenda() {
       </CabecalhoDaTela>
 
       <ScrollView contentContainerStyle={estilos.conteudo}>
-        {/* Abas Dia / Semana */}
+        {/* Abas Dia / Semana / Mês */}
         <View style={estilos.abas}>
-          {(["dia", "semana"] as Visao[]).map((opcao) => (
+          {(["dia", "semana", "mes"] as Visao[]).map((opcao) => (
             <Pressable
               key={opcao}
               onPress={() => setVisao(opcao)}
               style={[estilos.aba, visao === opcao && estilos.abaAtiva]}
             >
               <Text style={[estilos.textoAba, visao === opcao && estilos.textoAbaAtiva]}>
-                {opcao === "dia" ? "Dia" : "Semana"}
+                {NOME_DA_VISAO[opcao]}
               </Text>
             </Pressable>
           ))}
         </View>
 
-        <SeletorDeData dataSelecionada={dataSelecionada} aoSelecionar={setDataSelecionada} />
+        {visao === "mes" ? (
+          <CalendarioDoMes
+            mes={dataSelecionada}
+            diasComAgendamento={carregando ? [] : diasComAgendamento}
+            aoMudarMes={setDataSelecionada}
+            aoEscolherDia={abrirDia}
+          />
+        ) : (
+          <SeletorDeData dataSelecionada={dataSelecionada} aoSelecionar={setDataSelecionada} />
+        )}
 
         {erroConexao ? (
           <View style={estilos.alertaErro}>
@@ -141,7 +174,9 @@ export default function TelaAgenda() {
           </View>
         ) : null}
 
-        {carregando ? (
+        {visao === "mes" ? (
+          <Text style={estilos.dicaDoMes}>Toque em um dia para ver os agendamentos dele.</Text>
+        ) : carregando ? (
           <ActivityIndicator color={cores.primariaEscura} style={{ marginTop: 40 }} />
         ) : (
           <View style={{ marginTop: 24 }}>
@@ -255,6 +290,7 @@ const estilos = StyleSheet.create({
     color: cores.texto,
     marginBottom: 12,
   },
+  dicaDoMes: { fontSize: 14, color: cores.textoSuave, textAlign: "center", marginTop: 18 },
   vazio: { alignItems: "center", marginTop: 32, gap: 10 },
   textoVazio: { fontSize: 15, color: cores.textoSuave },
   botaoNovo: {

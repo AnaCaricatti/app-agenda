@@ -6,6 +6,7 @@ import Botao from "./Botao";
 import CampoTexto from "./CampoTexto";
 import { cores, fontes } from "../theme/cores";
 import { DadosDoServico, Servico } from "../types/servico";
+import { ICONES_DE_SERVICO, iconeDoServico } from "../utils/icones";
 
 type Props = {
   servico: Servico | null; // null = criando um serviço novo
@@ -29,6 +30,7 @@ export default function FormularioServico({
   const [descricao, setDescricao] = useState(servico?.descricao ?? "");
   const [preco, setPreco] = useState(servico ? String(servico.preco).replace(".", ",") : "");
   const [duracao, setDuracao] = useState(servico ? String(servico.duracao) : "");
+  const [icone, setIcone] = useState(iconeDoServico(servico?.icone));
   const [erro, setErro] = useState<string | null>(null);
 
   function salvar() {
@@ -46,7 +48,7 @@ export default function FormularioServico({
       descricao: descricao.trim(),
       preco: precoNumero,
       duracao: duracaoNumero,
-      imagem: servico?.imagem ?? "",
+      icone,
     });
   }
 
@@ -78,6 +80,28 @@ export default function FormularioServico({
               onChangeText={setDescricao}
               maxLength={120}
             />
+            {/* Ícone que representa o serviço no app e no site */}
+            <Text style={estilos.rotulo}>Ícone (aparece no site)</Text>
+            <View style={estilos.icones}>
+              {ICONES_DE_SERVICO.map((opcao) => {
+                const selecionado = opcao === icone;
+                return (
+                  <Pressable
+                    key={opcao}
+                    onPress={() => setIcone(opcao)}
+                    accessibilityLabel={`Ícone ${opcao}`}
+                    style={[estilos.opcaoDeIcone, selecionado && estilos.iconeSelecionado]}
+                  >
+                    <Ionicons
+                      name={opcao}
+                      size={24}
+                      color={selecionado ? cores.superficie : cores.primariaEscura}
+                    />
+                  </Pressable>
+                );
+              })}
+            </View>
+
             <View style={estilos.linha}>
               <View style={{ flex: 1 }}>
                 <CampoTexto
@@ -138,5 +162,18 @@ const estilos = StyleSheet.create({
   },
   titulo: { fontFamily: fontes.titulo, fontSize: 24, fontWeight: "700", color: cores.texto },
   linha: { flexDirection: "row", gap: 12 },
+  rotulo: { fontSize: 14, fontWeight: "600", color: cores.texto, marginBottom: 8 },
+  icones: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 18 },
+  opcaoDeIcone: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: cores.borda,
+    backgroundColor: cores.superficie,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconeSelecionado: { backgroundColor: cores.primariaEscura, borderColor: cores.primariaEscura },
   erro: { fontSize: 14, color: cores.cancelado, marginBottom: 10 },
 });

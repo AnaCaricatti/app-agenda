@@ -1,5 +1,4 @@
 // Regras de horário. O site tem uma cópia desta mesma lógica em js/horarios.js,
-// por isso os dois sempre mostram os mesmos horários livres.
 import { Agendamento } from "../types/agendamento";
 import { paraISO } from "./datas";
 
@@ -32,7 +31,7 @@ export function gerarOpcoesDeHorario(): string[] {
 
 // Devolve os horários ainda livres em um dia.
 //
-// horariosDoDia: horários que a profissional oferece naquele dia da semana
+// horariosDoDia: horários que a usuaria oferece naquele dia da semana
 // duracao: duração do serviço escolhido (em minutos)
 // agendamentosDoDia: agendamentos já existentes naquela data
 export function calcularHorariosLivres(

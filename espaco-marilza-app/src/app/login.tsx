@@ -10,11 +10,12 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 
 import CampoTexto from "../components/CampoTexto";
 import Botao from "../components/Botao";
 import { useAuth } from "../contexts/AuthContext";
-import { cores, fontes, sombra } from "../theme/cores";
+import { cores, fontes } from "../theme/cores";
 import { mensagens } from "../utils/mensagens";
 import { validarEmail, validarSenha } from "../utils/validacoes";
 
@@ -80,9 +81,12 @@ export default function TelaLogin() {
           keyboardShouldPersistTaps="handled"
         >
           <View style={estilos.cabecalho}>
-            <View style={estilos.logo}>
-              <Text style={estilos.monograma}>MC</Text>
-            </View>
+            <Image
+              source={require("../../assets/images/logo.png")}
+              style={estilos.logo}
+              contentFit="contain"
+              accessibilityLabel="Logo do Espaço Marilza Caricatti"
+            />
             <Text style={estilos.marca}>ESPAÇO MARILZA CARICATTI</Text>
             <Text style={estilos.titulo}>Bem-vinda de volta</Text>
             <Text style={estilos.subtitulo}>Entre para gerenciar a sua agenda</Text>
@@ -149,18 +153,7 @@ const estilos = StyleSheet.create({
     alignSelf: "center",
   },
   cabecalho: { alignItems: "center", marginBottom: 32 },
-  logo: {
-    width: 84,
-    height: 84,
-    borderRadius: 42,
-    backgroundColor: cores.primariaEscura,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 16,
-    ...sombra,
-    shadowOpacity: 0.25,
-  },
-  monograma: { fontFamily: fontes.titulo, fontSize: 30, fontWeight: "700", color: cores.superficie },
+  logo: { width: 170, height: 149, marginBottom: 18 }, // mesma proporção da imagem
   marca: { fontSize: 11, fontWeight: "700", letterSpacing: 2, color: cores.dourado, marginBottom: 8 },
   titulo: { fontFamily: fontes.titulo, fontSize: 30, fontWeight: "700", color: cores.texto },
   subtitulo: { fontSize: 15, color: cores.textoSuave, marginTop: 6 },

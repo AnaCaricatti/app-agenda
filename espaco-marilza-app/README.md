@@ -52,7 +52,7 @@ npx eslint src
 | `services/` | Tudo o que lê e grava no Firebase. As telas só chamam estas funções |
 | `contexts/AuthContext.tsx` | Guarda quem está logado |
 | `types/` | O formato dos dados (agendamento, serviço, expediente) |
-| `utils/` | Funções de apoio: datas, horários livres, WhatsApp, mensagens |
+| `utils/` | Funções de apoio: datas, horários livres, WhatsApp, ícones, mensagens |
 | `theme/cores.ts` | Cores, fonte dos títulos e sombra. Mude aqui para mudar o visual |
 | `config/firebaseConfig.ts` | Chaves do seu projeto Firebase |
 
